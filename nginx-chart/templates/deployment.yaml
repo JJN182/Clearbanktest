@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+    product: {{ .Values.labels.product }}
+    team: {{ .Values.labels.team }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        product: {{ .Values.labels.product }}
+        team: {{ .Values.labels.team }}
+    spec:
+      containers:
+      - name: nginx
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        resources: {{ toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: product-config
+          mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: product-config
+        configMap:
+          name: nginx-config
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - nginx
+            topologyKey: "kubernetes.io/hostname"
